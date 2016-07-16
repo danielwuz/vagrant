@@ -1,0 +1,6 @@
+---
+- hosts: nodeservers
+  sudo: yes
+  roles:
+    - nodejs
+    - { role: mysql, tags: ['mysql'] }

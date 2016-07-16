@@ -1,0 +1,9 @@
+---
+- name: Install yum repo
+  yum: name=http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm state=present
+
+- name: Install yum repo
+  yum: name=http://rpms.famillecollet.com/enterprise/remi-release-6.rpm state=present
+
+- name: Install redis rpm
+  yum: name=redis enablerepo=remi,remi-test state=present

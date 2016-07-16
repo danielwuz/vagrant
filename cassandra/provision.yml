@@ -1,0 +1,31 @@
+---
+- hosts: all
+  sudo: yes
+
+  tasks:
+    - name: Java | Ensure Java 8 is installed
+      yum:
+        name: java-1.8.0-openjdk
+        state: latest
+
+    - name: Yum Repo | Install selinux
+      yum:
+        name: libselinux-python
+        state: present
+
+    - name: Yum Repo | Copy yum repo file
+      template:
+        src: templates/datastax.repo
+        dest: /etc/yum.repos.d/datastax.repo
+
+    - name: Cassandra | Install cassandra RPM
+      yum: name=datastax-ddc state=present
+      notify:
+        - restart cassandra
+
+    - name: Cassandra | Start service
+      service: name=cassandra state=started enabled=yes
+
+  handlers:
+    - name: restart cassandra
+      service: name=cassandra state=restarted

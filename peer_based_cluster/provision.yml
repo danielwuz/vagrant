@@ -1,0 +1,62 @@
+---
+- hosts: all
+  sudo: yes
+
+  tasks:
+    - name: Reconfigure timezone
+      copy: content='America/New_York'
+            dest=/etc/timezone
+            owner=root
+            group=root
+            mode=0644
+            backup=yes
+      notify:
+        - update timezone
+
+    - name: Upgrade apt-cache
+      apt: update_cache=yes
+
+    - name: Install dependencies
+      apt: name={{ item }} state=present
+      with_items:
+        - ntp
+        - pacemaker
+        - haveged
+
+    - name: Copy configurations
+      template: src=./resources/corosync.conf dest=/etc/corosync/corosync.conf
+      notify:
+        - restart corosync
+
+    - name: Copy pcmk
+      copy: src=./resources/pcmk dest=/etc/corosync/service.d/pcmk
+
+    - name: Start corosync by default
+      copy: src=./resources/corosync dest=/etc/default/corosync
+
+    - name: Ensure log directory exist
+      file: path=/var/log/corosync state=directory mode=0755
+
+    - name: Start cluster
+      service: name=corosync state=started
+
+    - name: Start Pacemaker
+      command: update-rc.d pacemaker defaults 20 01
+
+    - name: Start Pacemaker
+      service: name=pacemaker state=started enabled=yes
+
+    - name: Create virtual ip
+      copy: src=./resources/eth11.cfg dest=/etc/network/interfaces.d/eth11.cfg
+      notify:
+        - restart networking
+
+  handlers:
+    - name: update timezone
+      command: dpkg-reconfigure --frontend noninteractive tzdata
+
+    - name: restart corosync
+      service: name=corosync state=restarted
+
+    - name: restart networking
+      command: ifdown eth1:1 && ifup eth1:1

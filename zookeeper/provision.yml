@@ -1,0 +1,49 @@
+---
+- hosts: all
+  sudo: yes
+  vars:
+    zk:
+      version: 3.4.6
+      mirror: http://apache.xl-mirror.nl
+      dataDir: /var/lib/zookeeper
+      installDir: "/opt"
+
+  tasks:
+    - name: Java | Ensure oracle JVM repository is present
+      apt_repository:
+        repo: ppa:webupd8team/java
+        state: present
+    - name: Java | Ensure oracle license is accepted
+      shell: echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
+    - name: Java | Ensure Java 7 is installed
+      apt:
+        name: oracle-java7-installer
+        state: latest
+
+    # download zookeeper
+    - name: Zookeeper | Setting internal variable
+      set_fact: zk_name="zookeeper-{{zk.version}}"
+    - name: Zookeeper | Setting internal variable
+      set_fact: zk_dir="{{zk.installDir}}/{{zk_name}}"
+    - name: Zookeeper | Ensure zookeeper tar is downloaded
+      get_url:
+        url: "{{zk.mirror}}/zookeeper/{{zk_name}}/{{zk_name}}.tar.gz"
+        dest: "/tmp"
+    - name: Zookeeper | Ensure zookeeper tar is extracted
+      command: tar xzf /tmp/{{zk_name}}.tar.gz chdir="{{zk.installDir}}"
+
+    # Config and start Zookeeper
+    - name: Zookeeper | Ensure zoo.conf is present
+      template:
+        src: "templates/zk/zoo.cfg"
+        dest: "{{zk_dir}}/conf/zoo.cfg"
+    - name: Zookeeper | Ensure data dir {{zk.dataDir}} exists
+      file:
+        path: "{{zk.dataDir}}"
+        state: directory
+    - name: Zookeeper | Ensure myid is set to {{cluster_node_seq}} in {{zk.dataDir}}/myid
+      template:
+        src: "templates/zk/myid"
+        dest: "{{zk.dataDir}}/myid"
+    - name: Zookeeper | Ensure zookeeper service is running
+      shell: "{{zk_dir}}/bin/zkServer.sh restart"
