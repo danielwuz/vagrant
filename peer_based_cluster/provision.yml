@@ -47,7 +47,7 @@
       service: name=pacemaker state=started enabled=yes
 
     - name: Create virtual ip
-      copy: src=./resources/eth11.cfg dest=/etc/network/interfaces.d/eth11.cfg
+      template: src=./resources/interfaces dest=/etc/network/interfaces
       notify:
         - restart networking
 
@@ -59,4 +59,4 @@
       service: name=corosync state=restarted
 
     - name: restart networking
-      command: ifdown eth1:1 && ifup eth1:1
+      command: ifdown eth1 && ifup eth1
